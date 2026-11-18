@@ -21,6 +21,24 @@ Ensure these are set in your deployment platform:
 
 Sentry source maps are uploaded automatically in CI.
 
+## Frankenstein-Labs Marketplace
+
+The Marketplace uses server-side Next.js route handlers. The browser never calls
+Coder directly. Configure these additional Vercel variables:
+
+- `FRANKENSTEIN_API_URL`: the deployed Render API URL, such as
+  `https://frankenstein-api-catalog-free.onrender.com`;
+- `FRANKENSTEIN_API_SECRET`: the same secret as Render's
+  `FRANKENSTEIN_API_SECRET`, stored as a server-only variable;
+- `FRANKENSTEIN_API_TIMEOUT_MS=75000`: allows for a free Render service cold start;
+- `NEXT_PUBLIC_APP_URL`: the final HTTPS dashboard URL used for `metadataBase`.
+
+Never prefix `FRANKENSTEIN_API_SECRET`, `CLERK_SECRET_KEY`, a Coder session token,
+or a database DSN with `NEXT_PUBLIC_`. The Render free catalog mode serves the
+69 templates and 93 modules but does not provide Coder workspaces or provisioning.
+See the repository-level `INTEGRATION_GUIDE.md` for the complete Vercel/Render
+configuration and the external compute requirements.
+
 ## Docker
 
 Two production-ready Dockerfiles are included: `Dockerfile` (Node.js) and `Dockerfile.bun` (Bun). Pass `NEXT_PUBLIC_*` variables as `--build-arg` at build time and runtime secrets via `-e` at run time.
@@ -44,7 +62,7 @@ Run the container:
 ```bash
 docker run -d -p 3000:3000 \
   -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx \
-  -e CLERK_SECRET_KEY=sk_live_xxxxx \
+  -e CLERK_SECRET_KEY=<clerk-secret-server-only> \
   --restart unless-stopped \
   --name shadcn-dashboard \
   shadcn-dashboard

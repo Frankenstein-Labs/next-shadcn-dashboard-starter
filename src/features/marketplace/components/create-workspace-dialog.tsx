@@ -86,7 +86,7 @@ export default function CreateWorkspaceDialog({
     createMutation.mutate({ templateName: template.name, workspaceName: trimmed });
   };
 
-  const progressValue = buildStatus === 'running' ? 100 : buildStatus ? 55 : 15;
+  const progressValue = buildStatus === 'running' ? 100 : buildStatus ? 45 : 15;
   const settled = buildStatus ? !isTransitionalStatus(buildStatus) : false;
 
   return (
@@ -128,18 +128,20 @@ export default function CreateWorkspaceDialog({
               </Badge>
             </div>
 
-            <Progress value={progressValue}>
-              <ProgressTrack>
-                <ProgressIndicator />
-              </ProgressTrack>
-            </Progress>
+            {buildStatus && isTransitionalStatus(buildStatus) ? (
+              <Progress value={progressValue}>
+                <ProgressTrack>
+                  <ProgressIndicator />
+                </ProgressTrack>
+              </Progress>
+            ) : null}
 
             {job?.status === 'failed' && job.error ? (
               <p className='text-destructive text-xs'>{job.error}</p>
             ) : (
               <p className='text-muted-foreground text-xs'>
                 {settled
-                  ? 'The engine finished the build. Open Workspaces to connect to it.'
+                  ? `The engine reported ${workspaceStatusLabel(buildStatus ?? 'unknown').toLowerCase()}. Open Workspaces for the recorded details.`
                   : 'The engine is building the workspace. This can take a while on first start.'}
               </p>
             )}

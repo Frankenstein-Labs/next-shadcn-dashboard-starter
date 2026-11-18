@@ -23,6 +23,7 @@ import type { MarketplaceTemplate } from '../api/types';
 import CreateWorkspaceDialog from './create-workspace-dialog';
 import EngineStatusBanner from './engine-status-banner';
 import TemplateCard from './template-card';
+import TemplateDetailDialog from './template-detail-dialog';
 import WorkspacesView from './workspaces-view';
 
 type AvailabilityFilter = 'all' | 'available' | 'catalog-only';
@@ -45,6 +46,7 @@ export default function MarketplaceView() {
   const [availability, setAvailability] = React.useState<AvailabilityFilter>('all');
   const [selected, setSelected] = React.useState<MarketplaceTemplate | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   const templates = React.useMemo(() => data?.templates ?? [], [data]);
 
@@ -66,6 +68,11 @@ export default function MarketplaceView() {
   const handleUse = (template: MarketplaceTemplate) => {
     setSelected(template);
     setDialogOpen(true);
+  };
+
+  const handleDetails = (template: MarketplaceTemplate) => {
+    setSelected(template);
+    setDetailsOpen(true);
   };
 
   return (
@@ -184,7 +191,12 @@ export default function MarketplaceView() {
               ) : (
                 <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
                   {filtered.map((template) => (
-                    <TemplateCard key={template.id} template={template} onUse={handleUse} />
+                    <TemplateCard
+                      key={template.id}
+                      template={template}
+                      onUse={handleUse}
+                      onDetails={handleDetails}
+                    />
                   ))}
                 </div>
               )}
@@ -236,6 +248,12 @@ export default function MarketplaceView() {
             template={selected}
             open={dialogOpen}
             onOpenChange={setDialogOpen}
+          />
+          <TemplateDetailDialog
+            template={selected}
+            open={detailsOpen}
+            onOpenChange={setDetailsOpen}
+            onUse={handleUse}
           />
         </>
       )}

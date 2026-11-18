@@ -50,6 +50,9 @@ export default function EngineStatusBanner() {
 
   if (data.state === 'connected') {
     const noDaemon = data.provisionerCount === 0;
+    const pendingJobs = data.provisionerJobCounts.pending ?? 0;
+    const runningJobs = data.provisionerJobCounts.running ?? 0;
+    const failedJobs = data.provisionerJobCounts.failed ?? 0;
     return (
       <Alert variant={noDaemon ? 'destructive' : 'default'}>
         {noDaemon ? <Icons.warning /> : <Icons.circleCheck />}
@@ -60,6 +63,9 @@ export default function EngineStatusBanner() {
           Coder {data.version ?? 'unknown version'} answered in {data.latencyMs} ms.{' '}
           {data.provisionerCount} provisioner daemon{data.provisionerCount === 1 ? '' : 's'},{' '}
           {data.templateCount} template{data.templateCount === 1 ? '' : 's'} registered.{' '}
+          {pendingJobs > 0 || runningJobs > 0 || failedJobs > 0
+            ? `${pendingJobs} pending, ${runningJobs} running and ${failedJobs} failed provisioner job${failedJobs === 1 ? '' : 's'}. `
+            : 'No pending, running or failed provisioner jobs in the latest sample. '}
           {noDaemon
             ? 'Without a running provisioner daemon, no build can be executed.'
             : 'The engine can execute builds. Whether a build yields a usable workspace depends on the compute backend (for example Kubernetes) configured for the template.'}{' '}

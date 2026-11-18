@@ -6,6 +6,8 @@ import {
   getMarketplaceCatalog,
   getMarketplaceTemplate,
   getWorkspace,
+  getWorkspaceBuildLogs,
+  getWorkspaceBuilds,
   getWorkspaces,
   runWorkspaceAction
 } from './service';
@@ -44,6 +46,23 @@ export const marketplaceQueries = {
       queryKey: [...marketplaceQueries.all(), 'workspace', id] as const,
       queryFn: () => getWorkspace(id),
       refetchInterval: 4_000
+    }),
+  workspaceBuilds: (id: string) =>
+    queryOptions({
+      queryKey: [...marketplaceQueries.all(), 'workspace-builds', id] as const,
+      queryFn: () => getWorkspaceBuilds(id),
+      refetchInterval: 5_000
+    }),
+  workspaceBuildLogs: (workspaceId: string, buildId: string) =>
+    queryOptions({
+      queryKey: [
+        ...marketplaceQueries.all(),
+        'workspace-build-logs',
+        workspaceId,
+        buildId
+      ] as const,
+      queryFn: () => getWorkspaceBuildLogs(workspaceId, buildId),
+      refetchInterval: 5_000
     })
 };
 

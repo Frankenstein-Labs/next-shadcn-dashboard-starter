@@ -23,7 +23,7 @@ export default async function UsersPage(props: PageProps) {
   return (
     <PageContainer
       pageTitle='Users'
-      pageDescription='Manage users (React Query + nuqs table pattern.)'
+      pageDescription='Demo data only — manage users (React Query + nuqs table pattern.)'
       infoContent={usersInfoContent}
       pageHeaderAction={<UserFormSheetTrigger />}
     >

@@ -10,6 +10,7 @@ import type { MarketplaceTemplate } from '../api/types';
 interface TemplateCardProps {
   template: MarketplaceTemplate;
   onUse: (template: MarketplaceTemplate) => void;
+  onDetails: (template: MarketplaceTemplate) => void;
 }
 
 /**
@@ -17,7 +18,7 @@ interface TemplateCardProps {
  * template exists in the Coder engine and a workspace can be created from it;
  * `Catalog only` means it is catalogued but has not been pushed to the engine.
  */
-export default function TemplateCard({ template, onUse }: TemplateCardProps) {
+export default function TemplateCard({ template, onUse, onDetails }: TemplateCardProps) {
   const available = template.availability === 'available';
 
   return (
@@ -62,6 +63,9 @@ export default function TemplateCard({ template, onUse }: TemplateCardProps) {
             {template.commit.slice(0, 12)}
           </span>
           <div className='flex gap-2'>
+            <Button variant='ghost' size='sm' onClick={() => onDetails(template)}>
+              Details
+            </Button>
             <Button
               variant='ghost'
               size='sm'

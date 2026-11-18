@@ -21,6 +21,8 @@ export function workspaceStatusLabel(status: WorkspaceStatus | string): string {
       return 'Deleted';
     case 'canceled':
       return 'Canceled';
+    case 'canceling':
+      return 'Canceling';
     default:
       return status;
   }
@@ -38,6 +40,7 @@ export function workspaceStatusVariant(
     case 'starting':
     case 'pending':
     case 'stopping':
+    case 'canceling':
       return 'secondary';
     default:
       return 'outline';
@@ -46,7 +49,7 @@ export function workspaceStatusVariant(
 
 /** True while a build is in flight and the UI should keep polling. */
 export function isTransitionalStatus(status: WorkspaceStatus | string): boolean {
-  return ['pending', 'starting', 'stopping', 'deleting'].includes(status);
+  return ['pending', 'starting', 'stopping', 'canceling', 'deleting'].includes(status);
 }
 
 export function formatRelativeTime(value: string | null | undefined): string {

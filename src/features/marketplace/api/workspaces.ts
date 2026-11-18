@@ -3,7 +3,13 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 
 import { coderRequest, UpstreamError } from './upstream';
-import type { CoderWorkspace, CreateWorkspaceInput, WorkspaceAction } from './types';
+import type {
+  CoderProvisionerJobLog,
+  CoderWorkspace,
+  CoderWorkspaceBuild,
+  CreateWorkspaceInput,
+  WorkspaceAction
+} from './types';
 
 /**
  * Workspace operations against the Coder engine.
@@ -73,9 +79,14 @@ export async function getDefaultOrganizationId(): Promise<string> {
 export async function ensureCoderUser(clerkUserId: string): Promise<string> {
   const username = coderUsernameFor(clerkUserId);
 
-  const existing = await coderRequest<{ users?: CoderUser[] } | CoderUser[]>(
-    `/api/v2/users?q=${encodeURIComponent(`username:${username}`)}`
-  ).catch(() => null);
+  let existing: { data: { users?: CoderUser[] } | CoderUser[] | null } | null = null;
+  try {
+    existing = await coderRequest<{ users?: CoderUser[] } | CoderUser[]>(
+      `/api/v2/users?q=${encodeURIComponent(`username:${username}`)}`
+    );
+  } catch (error) {
+    if (!(error instanceof UpstreamError) || error.status !== 404) throw error;
+  }
 
   const list: CoderUser[] = Array.isArray(existing?.data)
     ? existing!.data
@@ -123,6 +134,35 @@ export async function listUserWorkspaces(userId: string): Promise<CoderWorkspace
   return response.data.workspaces ?? [];
 }
 
+/** List real Coder build history for a workspace owned by the user. */
+export async function listUserWorkspaceBuilds(
+  userId: string,
+  workspaceId: string
+): Promise<CoderWorkspaceBuild[]> {
+  await assertOwnership(userId, workspaceId);
+  const response = await coderRequest<CoderWorkspaceBuild[] | null>(
+    `/api/v2/workspaces/${workspaceId}/builds?limit=50`
+  );
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+/** Read real provisioner logs for one build after verifying workspace ownership. */
+export async function getUserWorkspaceBuildLogs(
+  userId: string,
+  workspaceId: string,
+  buildId: string
+): Promise<CoderProvisionerJobLog[]> {
+  await assertOwnership(userId, workspaceId);
+  const build = await coderRequest<CoderWorkspaceBuild>(`/api/v2/workspacebuilds/${buildId}`);
+  if (build.data.workspace_id !== workspaceId) {
+    throw new UpstreamError('Workspace build not found', 404);
+  }
+  const response = await coderRequest<CoderProvisionerJobLog[] | null>(
+    `/api/v2/workspacebuilds/${buildId}/logs?format=json&follow=false`
+  );
+  return Array.isArray(response.data) ? response.data : [];
+}
+
 async function assertOwnership(userId: string, workspaceId: string): Promise<CoderWorkspace> {
   const workspace = await coderRequest<CoderWorkspace>(`/api/v2/workspaces/${workspaceId}`);
   const ownerId = (workspace.data as CoderWorkspace & { owner_id?: string }).owner_id;
@@ -139,6 +179,23 @@ export interface ProvisionResult {
   workspace: CoderWorkspace;
   /** The build that was queued, used by the UI to follow real progress. */
   buildId: string;
+}
+
+async function waitForWorkspaceBuild(buildId: string, transition: 'start' | 'stop') {
+  const terminalStatuses = new Set(
+    transition === 'stop' ? ['stopped', 'failed', 'canceled'] : ['running', 'failed', 'canceled']
+  );
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const current = await coderRequest<CoderWorkspaceBuild>(`/api/v2/workspacebuilds/${buildId}`);
+    if (terminalStatuses.has(current.data.status)) {
+      if (current.data.status !== (transition === 'stop' ? 'stopped' : 'running')) {
+        throw new UpstreamError(current.data.job?.error || `Coder ${transition} build failed`, 502);
+      }
+      return current.data;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new UpstreamError(`Coder ${transition} build did not finish before the timeout`, 504);
 }
 
 /** Create a workspace for the given user from a template that exists in the engine. */
@@ -192,18 +249,20 @@ export async function actOnUserWorkspace(
   }
 
   const buildTransition = async (transition: 'start' | 'stop') => {
-    await coderRequest(`/api/v2/workspaces/${workspaceId}/builds`, {
-      method: 'POST',
-      body: { transition }
-    });
+    const build = await coderRequest<CoderWorkspaceBuild>(
+      `/api/v2/workspaces/${workspaceId}/builds`,
+      {
+        method: 'POST',
+        body: { transition }
+      }
+    );
+    return build.data;
   };
-
-  // Coder has no atomic restart: a restart is a stop build followed by a start
-  // build. Coder serialises builds per workspace, so queuing both back-to-back is
-  // safe; the UI follows the resulting build states.
   if (action === 'restart') {
-    await buildTransition('stop');
-    await buildTransition('start');
+    const stopBuild = await buildTransition('stop');
+    await waitForWorkspaceBuild(stopBuild.id, 'stop');
+    const startBuild = await buildTransition('start');
+    await waitForWorkspaceBuild(startBuild.id, 'start');
   } else {
     await buildTransition(action);
   }

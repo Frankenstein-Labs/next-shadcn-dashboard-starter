@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api-client';
 
 import type {
+  CoderProvisionerJobLog,
+  CoderWorkspaceBuild,
   CreateWorkspaceResult,
   EngineStatus,
   MarketplaceCatalog,
@@ -33,6 +35,19 @@ export function getWorkspaces(): Promise<{ workspaces: import('./types').CoderWo
 export function getWorkspace(id: string) {
   return apiClient<{ workspace: import('./types').CoderWorkspace }>(
     `/marketplace/workspaces/${id}`
+  );
+}
+
+export function getWorkspaceBuilds(id: string): Promise<{ builds: CoderWorkspaceBuild[] }> {
+  return apiClient<{ builds: CoderWorkspaceBuild[] }>(`/marketplace/workspaces/${id}/builds`);
+}
+
+export function getWorkspaceBuildLogs(
+  workspaceId: string,
+  buildId: string
+): Promise<{ logs: CoderProvisionerJobLog[] }> {
+  return apiClient<{ logs: CoderProvisionerJobLog[] }>(
+    `/marketplace/workspaces/${workspaceId}/builds/${buildId}/logs`
   );
 }
 

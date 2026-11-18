@@ -19,6 +19,18 @@ interface ProvisionerDaemon {
   tags?: Record<string, string>;
 }
 
+type ProvisionerJobStatus =
+  | 'pending'
+  | 'running'
+  | 'succeeded'
+  | 'canceling'
+  | 'canceled'
+  | 'failed';
+
+interface ProvisionerJob {
+  status: ProvisionerJobStatus;
+}
+
 /**
  * Count the provisioner daemons registered with the engine.
  *
@@ -37,6 +49,29 @@ async function countProvisioners(): Promise<number> {
     `/api/v2/organizations/${defaultOrg.id}/provisionerdaemons`
   );
   return Array.isArray(daemons) ? daemons.length : 0;
+}
+
+/**
+ * Read the latest provisioner jobs without mutating Coder state.
+ *
+ * This deliberately reports counts instead of declaring the compute backend
+ * healthy: a running daemon can still be unable to create a workspace on the
+ * configured Docker/Kubernetes/VM backend.
+ */
+async function countProvisionerJobs(): Promise<Partial<Record<ProvisionerJobStatus, number>>> {
+  const orgs = await coderGet<Organization[] | null>('/api/v2/organizations');
+  const list = Array.isArray(orgs) ? orgs : [];
+  const defaultOrg = list.find((org) => org.is_default) ?? list[0];
+  if (!defaultOrg) return {};
+
+  const jobs = await coderGet<ProvisionerJob[] | null>(
+    `/api/v2/organizations/${defaultOrg.id}/provisionerjobs?limit=100`
+  );
+  const counts: Partial<Record<ProvisionerJobStatus, number>> = {};
+  for (const job of Array.isArray(jobs) ? jobs : []) {
+    counts[job.status] = (counts[job.status] ?? 0) + 1;
+  }
+  return counts;
 }
 
 /**
@@ -63,15 +98,17 @@ export async function probeEngine(): Promise<EngineStatus> {
         version: null,
         coderConfigured: false,
         provisionerCount: 0,
+        provisionerJobCounts: {},
         templateCount: 0,
         checkedAt,
         error: 'The engine is reachable but has no Coder upstream configured.'
       };
     }
 
-    const [info, provisionerCount, templates] = await Promise.all([
+    const [info, provisionerCount, provisionerJobCounts, templates] = await Promise.all([
       coderGet<BuildInfo>('/api/v2/buildinfo'),
       countProvisioners().catch(() => 0),
+      countProvisionerJobs().catch(() => ({})),
       coderGet<unknown[] | null>('/api/v2/templates').catch(() => [] as unknown[])
     ]);
     const totalMs = Date.now() - startedAt;
@@ -83,6 +120,7 @@ export async function probeEngine(): Promise<EngineStatus> {
       version: info.version ?? null,
       coderConfigured: true,
       provisionerCount,
+      provisionerJobCounts,
       templateCount: Array.isArray(templates) ? templates.length : 0,
       checkedAt
     };
@@ -96,6 +134,7 @@ export async function probeEngine(): Promise<EngineStatus> {
       version: null,
       coderConfigured: false,
       provisionerCount: 0,
+      provisionerJobCounts: {},
       templateCount: 0,
       checkedAt,
       error: error instanceof Error ? error.message : 'Engine probe failed'

@@ -64,6 +64,7 @@ export type WorkspaceStatus =
   | 'stopping'
   | 'stopped'
   | 'failed'
+  | 'canceling'
   | 'deleting'
   | 'deleted'
   | 'canceled';
@@ -86,12 +87,22 @@ export interface CoderWorkspaceResource {
 
 export interface CoderProvisionerJob {
   id: string;
-  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'canceled';
+  status: 'pending' | 'running' | 'succeeded' | 'canceling' | 'failed' | 'canceled';
   error?: string;
+}
+
+export interface CoderProvisionerJobLog {
+  id: number;
+  created_at: string;
+  log_source: string;
+  log_level: string;
+  stage: string;
+  output: string;
 }
 
 export interface CoderWorkspaceBuild {
   id: string;
+  workspace_id: string;
   build_number: number;
   transition: 'start' | 'stop' | 'delete';
   status: WorkspaceStatus;
@@ -181,6 +192,10 @@ export interface EngineStatus {
   coderConfigured: boolean;
   /** Registered provisioners: what actually executes a workspace build. */
   provisionerCount: number;
+  /** Read-only counts of Coder provisioner jobs by their official status. */
+  provisionerJobCounts: Partial<
+    Record<'pending' | 'running' | 'succeeded' | 'canceling' | 'canceled' | 'failed', number>
+  >;
   /** Templates present in the engine (not the catalog). */
   templateCount: number;
   checkedAt: string;

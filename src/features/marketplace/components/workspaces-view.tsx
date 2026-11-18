@@ -2,11 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import {
   Empty,
   EmptyContent,
@@ -20,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { marketplaceMutations, marketplaceQueries } from '../api/queries';
-import type { CoderWorkspace, WorkspaceAction } from '../api/types';
+import type { CoderWorkspace, CoderWorkspaceBuild, WorkspaceAction } from '../api/types';
 import {
   formatRelativeTime,
   isTransitionalStatus,
@@ -36,6 +44,7 @@ import {
  */
 export default function WorkspacesView() {
   const queryClient = useQueryClient();
+  const [selectedWorkspace, setSelectedWorkspace] = useState<CoderWorkspace | null>(null);
   const { data, isPending, isError, error, refetch, isFetching } = useQuery(
     marketplaceQueries.workspaces()
   );
@@ -115,10 +124,22 @@ export default function WorkspacesView() {
         <WorkspaceCard
           key={workspace.id}
           workspace={workspace}
-          pendingAction={actionMutation.isPending ? actionMutation.variables?.action : undefined}
+          pendingAction={
+            actionMutation.isPending && actionMutation.variables?.id === workspace.id
+              ? actionMutation.variables.action
+              : undefined
+          }
           onAction={(action) => actionMutation.mutate({ id: workspace.id, action })}
+          onShowHistory={() => setSelectedWorkspace(workspace)}
         />
       ))}
+      <BuildHistoryDialog
+        workspace={selectedWorkspace}
+        open={Boolean(selectedWorkspace)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedWorkspace(null);
+        }}
+      />
     </div>
   );
 }
@@ -126,11 +147,13 @@ export default function WorkspacesView() {
 function WorkspaceCard({
   workspace,
   pendingAction,
-  onAction
+  onAction,
+  onShowHistory
 }: {
   workspace: CoderWorkspace;
   pendingAction?: WorkspaceAction;
   onAction: (action: WorkspaceAction) => void;
+  onShowHistory: () => void;
 }) {
   const status = workspace.latest_build.status;
   const transitional = isTransitionalStatus(status);
@@ -173,6 +196,10 @@ function WorkspaceCard({
         )}
 
         <div className='mt-auto flex flex-wrap gap-2 pt-2'>
+          <Button size='sm' variant='outline' disabled={busy} onClick={onShowHistory}>
+            <Icons.clock />
+            History
+          </Button>
           {isRunning ? (
             <Button size='sm' variant='outline' disabled={busy} onClick={() => onAction('stop')}>
               {pendingAction === 'stop' ? (
@@ -222,5 +249,100 @@ function WorkspaceCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function BuildHistoryDialog({
+  workspace,
+  open,
+  onOpenChange
+}: {
+  workspace: CoderWorkspace | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [selectedBuild, setSelectedBuild] = useState<CoderWorkspaceBuild | null>(null);
+  const buildsQuery = useQuery({
+    ...marketplaceQueries.workspaceBuilds(workspace?.id ?? ''),
+    enabled: open && Boolean(workspace?.id)
+  });
+  const logsQuery = useQuery({
+    ...marketplaceQueries.workspaceBuildLogs(workspace?.id ?? '', selectedBuild?.id ?? ''),
+    enabled: open && Boolean(workspace?.id && selectedBuild?.id)
+  });
+  const builds = buildsQuery.data?.builds ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='max-h-[min(80vh,720px)] overflow-auto sm:max-w-3xl'>
+        <DialogHeader>
+          <DialogTitle>Build history{workspace ? ` · ${workspace.name}` : ''}</DialogTitle>
+          <DialogDescription>
+            These entries and logs come directly from Coder. An empty list means Coder returned no
+            history, not that a build was simulated.
+          </DialogDescription>
+        </DialogHeader>
+        {buildsQuery.isPending ? (
+          <Skeleton className='h-24 w-full' />
+        ) : buildsQuery.isError ? (
+          <p className='text-destructive text-sm'>
+            {buildsQuery.error instanceof Error
+              ? buildsQuery.error.message
+              : 'Could not load build history.'}
+          </p>
+        ) : builds.length === 0 ? (
+          <p className='text-muted-foreground text-sm'>Coder returned no build history.</p>
+        ) : (
+          <div className='grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]'>
+            <div className='flex flex-col gap-2'>
+              {builds.map((build) => (
+                <button
+                  key={build.id}
+                  type='button'
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors hover:bg-muted',
+                    selectedBuild?.id === build.id && 'border-primary bg-muted'
+                  )}
+                  onClick={() => setSelectedBuild(build)}
+                >
+                  <div className='flex items-center justify-between gap-2'>
+                    <span className='font-medium'>Build #{build.build_number}</span>
+                    <Badge variant={workspaceStatusVariant(build.status)}>
+                      {workspaceStatusLabel(build.status)}
+                    </Badge>
+                  </div>
+                  <p className='text-muted-foreground mt-1 text-xs'>
+                    {build.transition} · {formatRelativeTime(build.created_at)}
+                  </p>
+                </button>
+              ))}
+            </div>
+            <div className='min-h-40 rounded-lg border p-3'>
+              {!selectedBuild ? (
+                <p className='text-muted-foreground text-sm'>Select a build to inspect its logs.</p>
+              ) : logsQuery.isPending ? (
+                <Skeleton className='h-32 w-full' />
+              ) : logsQuery.isError ? (
+                <p className='text-destructive text-sm'>
+                  {logsQuery.error instanceof Error
+                    ? logsQuery.error.message
+                    : 'Could not load build logs.'}
+                </p>
+              ) : logsQuery.data?.logs.length ? (
+                <pre className='max-h-96 overflow-auto whitespace-pre-wrap text-xs'>
+                  {logsQuery.data.logs
+                    .map((log) => `[${log.created_at}] ${log.stage} ${log.output}`)
+                    .join('\n')}
+                </pre>
+              ) : (
+                <p className='text-muted-foreground text-sm'>
+                  Coder returned no logs for this build.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
