@@ -16,6 +16,13 @@ export default function Providers({
       <ActiveThemeProvider initialTheme={activeThemeValue}>
         {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
           <ClerkProvider
+            // Without an explicit fallback, Clerk sends users to "/" after
+            // sign-in/sign-up — here that is the marketing landing page, so a
+            // successful login looks like nothing happened.
+            signInUrl='/auth/sign-in'
+            signUpUrl='/auth/sign-up'
+            signInFallbackRedirectUrl='/dashboard/overview'
+            signUpFallbackRedirectUrl='/dashboard/overview'
             appearance={{
               variables: {
                 colorPrimary: 'var(--primary)',
