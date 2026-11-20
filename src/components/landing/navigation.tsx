@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
+import Link from 'next/link';
 
 const navLinks = [
   { name: 'Capabilities', href: '#features' },
@@ -74,17 +75,19 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className='hidden md:flex items-center gap-4'>
-            <a
-              href='#'
+            <Link
+              href='/auth/sign-in'
               className={`transition-all duration-500 ${isScrolled ? 'text-xs text-foreground/70 hover:text-foreground' : 'text-sm text-white/70 hover:text-white'}`}
             >
               Sign in
-            </a>
+            </Link>
             <Button
+              render={<Link href='/auth/sign-up' />}
+              nativeButton={false}
               size='sm'
               className={`rounded-full transition-all duration-500 ${isScrolled ? 'bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs' : 'bg-white hover:bg-white/90 text-black px-6'}`}
             >
-              Deploy agent
+              Sign up
             </Button>
           </div>
 
@@ -132,17 +135,19 @@ export function Navigation() {
             style={{ transitionDelay: isMobileMenuOpen ? '300ms' : '0ms' }}
           >
             <Button
+              render={<Link href='/auth/sign-in' onClick={() => setIsMobileMenuOpen(false)} />}
+              nativeButton={false}
               variant='outline'
               className='flex-1 rounded-full h-14 text-base'
-              onClick={() => setIsMobileMenuOpen(false)}
             >
               Sign in
             </Button>
             <Button
+              render={<Link href='/auth/sign-up' onClick={() => setIsMobileMenuOpen(false)} />}
+              nativeButton={false}
               className='flex-1 bg-foreground text-background rounded-full h-14 text-base'
-              onClick={() => setIsMobileMenuOpen(false)}
             >
-              Deploy agent
+              Sign up
             </Button>
           </div>
         </div>
