@@ -10,6 +10,8 @@ pnpm-lock.yaml
 
 # testing
 /coverage
+__pycache__/
+*.pyc
 
 # next.js
 /.next/
