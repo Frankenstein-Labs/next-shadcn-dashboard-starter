@@ -249,18 +249,24 @@ const definitions: ProviderDefinition[] = [
   }
 ];
 
+const publicProviderIds = new Set([
+  'neuronto',
+  'agent-nexus',
+  'wandbox',
+  'npm-registry',
+  'cdnjs',
+  'apis-guru',
+  'prismix'
+]);
+
 export function getProviders(): ApiProvider[] {
   return definitions.map((provider) => ({
     ...provider,
     status:
-      provider.envKey === 'SEARXNG_API_URL'
-        ? process.env[provider.envKey]
-          ? 'configured'
-          : 'not_configured'
-        : process.env[provider.envKey]
-          ? 'configured'
-          : 'not_configured',
-    enabled: Boolean(process.env[provider.envKey])
+      publicProviderIds.has(provider.id) || process.env[provider.envKey]
+        ? 'configured'
+        : 'not_configured',
+    enabled: publicProviderIds.has(provider.id) || Boolean(process.env[provider.envKey])
   }));
 }
 
