@@ -111,6 +111,25 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: 'Aetheris Cloud',
+    items: [
+      {
+        title: 'API Hub',
+        url: '/dashboard/api-hub',
+        icon: 'code',
+        isActive: false,
+        items: [
+          { title: 'AI Hub', url: '/dashboard/api-hub/ai', icon: 'sparkles' },
+          { title: 'Agent Hub', url: '/dashboard/api-hub/agents', icon: 'teams' },
+          { title: 'Developer Hub', url: '/dashboard/api-hub/developer', icon: 'code' },
+          { title: 'Infrastructure', url: '/dashboard/api-hub/infrastructure', icon: 'settings' },
+          { title: 'API Keys & Providers', url: '/dashboard/api-hub/providers', icon: 'lock' },
+          { title: 'Usage & Statistics', url: '/dashboard/api-hub/usage', icon: 'trendingUp' }
+        ]
+      }
+    ]
+  },
+  {
     label: 'Elements',
     items: [
       {
