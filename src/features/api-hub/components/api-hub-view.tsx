@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,7 @@ export default function ApiHubView({ category, mode = 'catalog' }: ApiHubViewPro
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
+      <GoogleColabCard />
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
         <div className='relative min-w-0 flex-1'>
           <Icons.search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
@@ -127,6 +129,98 @@ export default function ApiHubView({ category, mode = 'catalog' }: ApiHubViewPro
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function GoogleColabCard() {
+  const [state, setState] = React.useState<'idle' | 'loading' | 'connected' | 'error'>('idle');
+  const [message, setMessage] = React.useState('');
+  const colabUrl =
+    'https://colab.research.google.com/github/Frankenstein-Labs/next-shadcn-dashboard-starter/blob/main/notebooks/aetheris_colab_marimo.ipynb';
+
+  const checkConnection = async () => {
+    setState('loading');
+    try {
+      const response = await fetch('/api/api-hub/google-colab/runtimes', { cache: 'no-store' });
+      const body = (await response.json()) as {
+        connected?: boolean;
+        runtimes?: Array<{ name?: string }>;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(body.error ?? 'Impossible de vérifier Google Colab.');
+      setState(body.connected ? 'connected' : 'idle');
+      setMessage(
+        body.connected
+          ? `${body.runtimes?.length ?? 0} runtime(s) Colab autorisé(s).`
+          : 'Autorisation Google Colab non connectée.'
+      );
+    } catch (error) {
+      setState('error');
+      setMessage(error instanceof Error ? error.message : 'Impossible de vérifier Google Colab.');
+    }
+  };
+
+  return (
+    <div className='rounded-xl border p-4'>
+      <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
+        <div className='flex items-start gap-3'>
+          <Icons.code className='text-muted-foreground mt-0.5 size-5' />
+          <div>
+            <h3 className='font-medium'>Google Colab + marimo</h3>
+            <p className='text-muted-foreground mt-1 max-w-2xl text-sm'>
+              Connectez votre compte Google pour autoriser vos runtimes Colab. Les tests lourds
+              s’exécutent dans votre runtime Google, pas dans Vercel.
+            </p>
+            {message && (
+              <p
+                className={cn(
+                  'mt-2 text-xs',
+                  state === 'error' ? 'text-destructive' : 'text-muted-foreground'
+                )}
+              >
+                {message}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className='flex flex-wrap gap-2'>
+          <Button
+            size='sm'
+            variant='outline'
+            render={
+              <Link
+                href='/api/api-hub/google-colab/connect'
+                aria-label='Se connecter à Google Colab'
+              />
+            }
+          >
+            Se connecter avec Google
+          </Button>
+          <Button
+            size='sm'
+            variant='secondary'
+            onClick={checkConnection}
+            disabled={state === 'loading'}
+          >
+            {state === 'loading' && <Icons.spinner className='animate-spin' />} Vérifier
+          </Button>
+          <Button
+            size='sm'
+            variant='ghost'
+            render={
+              <a
+                href={colabUrl}
+                target='_blank'
+                rel='noreferrer noopener'
+                aria-label='Ouvrir le notebook marimo dans Google Colab'
+              />
+            }
+          >
+            <Icons.externalLink /> Ouvrir marimo dans Colab
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -44,6 +44,11 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Validate marimo and Colab artifacts
+        run: |
+          python3 -m py_compile notebooks/aetheris_colab_marimo.py
+          python3 -m json.tool notebooks/aetheris_colab_marimo.ipynb >/dev/null
+
       - name: Publish validation summary
         if: always()
         run: |

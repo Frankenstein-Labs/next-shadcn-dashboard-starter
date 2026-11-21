@@ -50,6 +50,17 @@ Ce document recense les variables réellement utilisées par le dépôt `Franken
 | `AGENT_NEXUS_API_KEY` | Agent Nexus | Facultative | Header serveur `x-api-key`; le registre public fonctionne sans clé. | Production, Preview, Development |
 | `SEARXNG_API_URL` | SearXNG Render | Oui pour la recherche SearXNG | URL de base de l’instance Render : `https://aetheris-searxng-uj0m.onrender.com`. À ajouter dans Vercel server-side. | Production, Preview, Development |
 
+## Google Colab + marimo
+
+Ces variables permettent au bouton « Se connecter avec Google » d’obtenir une autorisation OAuth séparée de Clerk pour l’API officielle Google Colab. Créer un client OAuth 2.0 Web dans Google Cloud, activer l’API Colab et déclarer exactement l’URL de callback. Les tokens sont chiffrés avant stockage dans les métadonnées privées Clerk.
+
+| Variable | Service | Obligatoire | Utilité / où obtenir | Environnements |
+|---|---|---:|---|---|
+| `GOOGLE_COLAB_CLIENT_ID` | Google OAuth | Oui pour la connexion Colab | Client ID d’une application OAuth Web Google Cloud. | Production, Preview, Development |
+| `GOOGLE_COLAB_CLIENT_SECRET` | Google OAuth | Oui pour la connexion Colab | Secret du même client OAuth. Vercel server-only. | Production, Preview, Development |
+| `GOOGLE_COLAB_REDIRECT_URI` | Google OAuth | Oui pour la connexion Colab | URL exacte `/api/api-hub/google-colab/callback`, déclarée dans Google Cloud. | Production, Preview, Development |
+| `GOOGLE_COLAB_TOKEN_ENCRYPTION_KEY` | Aetheris | Oui pour la connexion Colab | Clé AES-256 base64 générée par `openssl rand -base64 32`. Vercel server-only. | Production, Preview, Development |
+
 ## API Hub — accès publics ou credentials optionnels
 
 Les route handlers suivants utilisent des APIs publiques et ne nécessitent actuellement pas de clé : Neuronto, Wandbox, npm Registry, CDNJS, APIs.guru et Prismix. Les variables conservées dans `env.example.txt` et `.env.example` sont réservées à un futur plan authentifié ou à une opération privée : `NEURONTO_API_KEY`, `WANDBOX_API_KEY`, `NPM_REGISTRY_TOKEN`, `CDNJS_API_KEY`, `APIS_GURU_API_KEY` et `PRISMIX_API_KEY`. Ne pas inventer de valeur ni de quota.
