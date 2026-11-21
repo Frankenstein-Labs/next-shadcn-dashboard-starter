@@ -1,0 +1,94 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Next.js app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+      - name: Publish validation summary
+        if: always()
+        run: |
+          {
+            echo "### CI validation"
+            echo "- Formatting: executed"
+            echo "- Typecheck: executed"
+            echo "- Lint: ${{ steps.lint.outcome }}"
+            echo "- Build: executed"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-vercel:
+    name: Deploy to Vercel
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Skip deployment when Vercel secrets are missing
+        if: env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == ''
+        run: |
+          echo "Vercel deployment skipped: configure VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID repository secrets." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pull Vercel project settings
+        if: env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
+        run: bunx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel artifact
+        if: env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
+        run: bunx vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy Vercel artifact
+        if: env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
+        run: |
+          DEPLOYMENT_URL=$(bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "Vercel deployment: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"

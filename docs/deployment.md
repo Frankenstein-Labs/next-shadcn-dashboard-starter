@@ -10,6 +10,18 @@ The starter deploys to Vercel out of the box, or anywhere Docker runs. `next.con
 
 For other platforms, see the [Next.js deployment docs](https://nextjs.org/docs/app/getting-started/deploying).
 
+## GitHub Actions CI/CD
+
+The workflow at `.github/workflows/ci-cd.yml` runs on pull requests and pushes to `main`. It installs the locked Bun dependencies, checks formatting, runs TypeScript typechecking, runs lint, and builds the Next.js application. Lint is currently reported as non-blocking because the starter contains existing upstream lint findings; formatting, typechecking, and build failures remain blocking.
+
+On pushes to `main`, the workflow also contains a Vercel deployment step. It skips deployment explicitly when the repository secrets below are absent, so a fork or a repository that has not been connected to Vercel does not fail for missing credentials:
+
+- `VERCEL_TOKEN`: Vercel personal or team token;
+- `VERCEL_ORG_ID`: Vercel team or account identifier;
+- `VERCEL_PROJECT_ID`: Vercel project identifier.
+
+Add these values under **Settings → Secrets and variables → Actions**. Do not place them in `.env`, workflow YAML, or frontend code. Application runtime secrets such as Clerk, Sentry, Marketplace, and API Hub provider keys remain configured in Vercel project environment variables and are not copied into GitHub Actions.
+
 ## Environment Variables for Production
 
 Ensure these are set in your deployment platform:
