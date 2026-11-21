@@ -11,9 +11,9 @@ const definitions: ProviderDefinition[] = [
     category: 'AI Hub',
     description: 'Plateforme Forge de Voxell pour les outils et workflows IA.',
     documentationUrl: 'https://voxell.ai/forge',
-    apiUrl: 'https://voxell.ai/forge',
-    auth: 'Clé API serveur à confirmer dans la documentation du fournisseur.',
-    envKey: 'VOXELL_FORGE_API_KEY',
+    apiUrl: 'https://api.voxell.ai/v1',
+    auth: 'Bearer API key dans Authorization.',
+    envKey: 'FORGE_API_KEY',
     limits: 'Non publiées dans ce registre tant que le plan officiel n’est pas confirmé.'
   },
   {
@@ -22,8 +22,8 @@ const definitions: ProviderDefinition[] = [
     category: 'AI Hub',
     description: 'Routage de modèles IA via une interface de fournisseur unifiée.',
     documentationUrl: 'https://unorouter.com',
-    apiUrl: 'https://unorouter.com',
-    auth: 'Clé API serveur à confirmer dans la documentation du fournisseur.',
+    apiUrl: 'https://api.unorouter.com/v1',
+    auth: 'Bearer API key dans Authorization.',
     envKey: 'UNOROUTER_API_KEY',
     limits: 'Dépendent du compte et du fournisseur sélectionné.'
   },
@@ -34,7 +34,7 @@ const definitions: ProviderDefinition[] = [
     description: 'Service d’agents et d’automatisation orienté développeurs.',
     documentationUrl: 'https://neuronto.com',
     apiUrl: 'https://neuronto.com',
-    auth: 'Clé API serveur à confirmer dans la documentation du fournisseur.',
+    auth: 'API publique sans clé pour la découverte.',
     envKey: 'NEURONTO_API_KEY',
     limits: 'Non publiées dans ce registre tant que le plan officiel n’est pas confirmé.'
   },
@@ -45,7 +45,7 @@ const definitions: ProviderDefinition[] = [
     description: 'Hub externe pour connecter des agents et des capacités spécialisées.',
     documentationUrl: 'https://agentnexus.app',
     apiUrl: 'https://agentnexus.app',
-    auth: 'Clé API serveur à confirmer dans la documentation du fournisseur.',
+    auth: 'Lecture publique ; clé optionnelle x-api-key côté serveur.',
     envKey: 'AGENT_NEXUS_API_KEY',
     limits: 'Dépendent du compte fournisseur.'
   },
@@ -55,8 +55,8 @@ const definitions: ProviderDefinition[] = [
     category: 'Developer Hub',
     description: 'Exécution distante de code via l’API officielle Wandbox.',
     documentationUrl: 'https://github.com/melpon/wandbox/blob/master/kennel/API.md',
-    apiUrl: 'https://wandbox.org/api',
-    auth: 'API publique documentée ; exécution à isoler et limiter côté serveur.',
+    apiUrl: 'https://wandbox.org',
+    auth: 'API publique ; exécution limitée côté serveur.',
     envKey: 'WANDBOX_API_KEY',
     limits: 'Contraintes d’exécution et de ressources définies par Wandbox.'
   },
@@ -88,8 +88,8 @@ const definitions: ProviderDefinition[] = [
     category: 'Infrastructure & Monitoring',
     description: 'Source externe de statut et de disponibilité des services Prismix.',
     documentationUrl: 'https://prismix.dev/api-docs',
-    apiUrl: 'https://prismix.dev/api-docs',
-    auth: 'À confirmer dans la documentation officielle.',
+    apiUrl: 'https://prismix.dev/api/v1/statuses',
+    auth: 'API publique sans clé.',
     envKey: 'PRISMIX_API_KEY',
     limits: 'Non publiées dans ce registre tant que le plan officiel n’est pas confirmé.'
   },
