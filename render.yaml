@@ -17,4 +17,4 @@ services:
       - key: SEARXNG_SECRET
         sync: false
       - key: SEARXNG_BASE_URL
-        value: https://aetheris-searxng.onrender.com
+        value: https://aetheris-searxng-uj0m.onrender.com
